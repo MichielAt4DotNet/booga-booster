@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 
 import {
-  RIDE_STATE_BY_INDEX,
+  RIDE_LIFECYCLE_ORDER,
   RideState,
   SecurityState,
   rideStateLabel,
+  rideTransitionLabel,
 } from '../../models/ride.models';
 
 /**
@@ -31,6 +32,7 @@ const TRANSITION_COLOR_BY_STATE: Readonly<Record<RideState, TransitionColor>> = 
   stopping: 'orange',
   offloading: 'blue',
   'emergency-stop': 'red',
+  flying: 'green',
 };
 
 @Component({
@@ -74,7 +76,7 @@ const TRANSITION_COLOR_BY_STATE: Readonly<Record<RideState, TransitionColor>> = 
               [attr.aria-current]="isCurrent(candidate) ? 'true' : null"
               (click)="onTransitionClick(candidate)"
             >
-              <span>{{ rideStateLabel(candidate) }}</span>
+              <span>{{ rideTransitionLabel(candidate) }}</span>
             </button>
           }
         </div>
@@ -240,7 +242,7 @@ export class StatusSummary {
   readonly transition = output<RideState>();
 
   /** Every lifecycle state, in a fixed order, driving the transition button grid. */
-  protected readonly lifecycleStates: readonly RideState[] = RIDE_STATE_BY_INDEX;
+  protected readonly lifecycleStates: readonly RideState[] = RIDE_LIFECYCLE_ORDER;
 
   protected readonly stateLabel = computed(() => rideStateLabel(this.state()));
   protected readonly securityText = computed(() =>
@@ -255,7 +257,7 @@ export class StatusSummary {
       : 'One or more occupied seats not secured',
   );
 
-  protected readonly rideStateLabel = rideStateLabel;
+  protected readonly rideTransitionLabel = rideTransitionLabel;
 
   /** Whether `candidate` is one of the server's currently-legal transitions. */
   protected isAvailable(candidate: RideState): boolean {

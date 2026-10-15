@@ -98,6 +98,11 @@ export class RideStateService {
    */
   readonly brakesEngaged: Signal<boolean> = computed(() => this.telemetry().brakesEngaged);
 
+  /** Height of the ride above the ground, in metres (0 if it has never flown). */
+  readonly flightAltitudeMeters: Signal<number> = computed(
+    () => this.telemetry().flightAltitudeMeters,
+  );
+
   /** Set the central mill power; value is clamped to 0–100 before dispatch. */
   setMillPower(value: number): void {
     this.source.applyCommand({ kind: 'set-mill-power', value: clampPower(value) });

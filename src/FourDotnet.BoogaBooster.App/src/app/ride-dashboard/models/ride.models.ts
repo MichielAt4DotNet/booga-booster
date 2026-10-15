@@ -11,10 +11,17 @@
 /**
  * Overall lifecycle state of the ride, backed by the server-side state
  * machine (see `RideLifecycleService`). Order matches the backend's
- * `RideState` enum index (`0=Idle` … `6=EmergencyStop`).
+ * `RideState` enum index (`0=Idle` … `6=EmergencyStop`, `7=Flying`).
  */
 export type RideState =
-  'idle' | 'loading' | 'safe' | 'started' | 'stopping' | 'offloading' | 'emergency-stop';
+  'idle' | 'loading' | 'safe' | 'started' | 'stopping' | 'offloading' | 'emergency-stop' | 'flying';
+
+/**
+ * Altitude, in metres, at which the visualization camera starts following the
+ * ride. Mirrors the backend's `RideParameters.FlightCameraFollowAltitude` —
+ * **must stay in sync** with that value.
+ */
+export const FLIGHT_CAMERA_FOLLOW_ALTITUDE = 3;
 
 /** Direction a motor drives its rotation. */
 export type MotorDirection = 'forward' | 'reverse';
@@ -119,6 +126,8 @@ export interface RideTelemetry {
    * it is absent (see `RideStateService.occupiedSeats`).
    */
   readonly boardedPassengerCount?: number;
+  /** Height of the ride above the ground, in metres (0 if it has never flown). */
+  readonly flightAltitudeMeters: number;
 }
 
 /**
@@ -234,6 +243,8 @@ export interface RideTelemetryStreamDto {
   readonly gondolas: readonly RideTelemetryGondolaStreamDto[];
   readonly boardedPassengerCount: number;
   readonly brakesEngaged?: boolean;
+  /** Flight altitude in metres; optional for older frames (defaults to 0). */
+  readonly flightAltitudeMeters?: number;
 }
 
 /** The backend's `GondolaBrakeState` names in index order (`0=Engaged, 1=Released`). */
@@ -368,6 +379,7 @@ export function mapRideTelemetry(dto: RideTelemetryStreamDto): RideTelemetry {
     gondolaBrakeEngaged: dto.gondolas.every((gondola) => brakeEngaged(gondola.brake)),
     // Defaults to released for an older frame that doesn't carry the field.
     brakesEngaged: dto.brakesEngaged ?? false,
+    flightAltitudeMeters: Math.max(0, dto.flightAltitudeMeters ?? 0),
   };
 }
 
@@ -477,15 +489,30 @@ export function loadBalanceState(gondolas: readonly Gondola[]): LoadBalanceState
 }
 
 /**
- * The seven lifecycle states in the backend `RideState` enum's index order
- * (`0=Idle` … `6=EmergencyStop`); used to map a numeric wire value and to
- * enumerate every state (e.g. for the transition button grid).
+ * The lifecycle states in the backend `RideState` enum's index order
+ * (`0=Idle` … `6=EmergencyStop`, `7=Flying`); used to map a numeric wire value.
  */
 export const RIDE_STATE_BY_INDEX: readonly RideState[] = [
   'idle',
   'loading',
   'safe',
   'started',
+  'stopping',
+  'offloading',
+  'emergency-stop',
+  'flying',
+];
+
+/**
+ * Lifecycle states in display order for the transition button grid. `flying`
+ * is appended on the wire (index 7) but shown right after `started`.
+ */
+export const RIDE_LIFECYCLE_ORDER: readonly RideState[] = [
+  'idle',
+  'loading',
+  'safe',
+  'started',
+  'flying',
   'stopping',
   'offloading',
   'emergency-stop',
@@ -500,6 +527,7 @@ const RIDE_STATE_NAMES: Readonly<Record<RideState, string>> = {
   stopping: 'Stopping',
   offloading: 'Offloading',
   'emergency-stop': 'EmergencyStop',
+  flying: 'Flying',
 };
 
 /** Human-readable label for a lifecycle state, e.g. `'emergency-stop'` → `'Emergency stop'`. */
@@ -511,6 +539,13 @@ const RIDE_STATE_LABELS: Readonly<Record<RideState, string>> = {
   stopping: 'Stopping',
   offloading: 'Offloading',
   'emergency-stop': 'Emergency stop',
+  flying: 'Flying',
+};
+
+/** Label of the lifecycle button that requests a state; `flying` is "Yeet". */
+const RIDE_TRANSITION_LABELS: Readonly<Record<RideState, string>> = {
+  ...RIDE_STATE_LABELS,
+  flying: 'Yeet',
 };
 
 /**
@@ -537,4 +572,9 @@ export function toRideStateName(state: RideState): string {
 /** Human-friendly ride-state label, e.g. `'emergency-stop'` → `'Emergency stop'`. */
 export function rideStateLabel(state: RideState): string {
   return RIDE_STATE_LABELS[state];
+}
+
+/** Label of the lifecycle button requesting `state`, e.g. `'flying'` → `'Yeet'`. */
+export function rideTransitionLabel(state: RideState): string {
+  return RIDE_TRANSITION_LABELS[state];
 }

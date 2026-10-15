@@ -1,14 +1,20 @@
 import {
+  FLIGHT_CAMERA_FOLLOW_ALTITUDE,
   GONDOLA_COUNT,
   GONDOLAS_PER_HUB,
   HUB_COUNT,
   HUB_MAX_POWER_WATTS,
   MILL_MAX_POWER_WATTS,
+  RIDE_LIFECYCLE_ORDER,
+  RIDE_STATE_BY_INDEX,
   RideTelemetryGondolaStreamDto,
   RideTelemetryHubStreamDto,
   RideTelemetryStreamDto,
   SEATS_PER_GONDOLA,
   mapRideTelemetry,
+  rideStateLabel,
+  rideTransitionLabel,
+  toRideStateName,
 } from './ride.models';
 
 /** A hub DTO with the given index and no load, always forward. */
@@ -70,6 +76,36 @@ function buildDto(overrides: Partial<RideTelemetryStreamDto> = {}): RideTelemetr
 }
 
 describe('mapRideTelemetry', () => {
+  it('maps the Flying state (index 7 or name) and its transition', () => {
+    expect(mapRideTelemetry(buildDto({ state: 7 })).state).toBe('flying');
+    expect(mapRideTelemetry(buildDto({ state: 'Flying' })).state).toBe('flying');
+    expect(
+      mapRideTelemetry(buildDto({ state: 3, availableTransitions: [7, 4] })).availableTransitions,
+    ).toEqual(['flying', 'stopping']);
+    expect(toRideStateName('flying')).toBe('Flying');
+    expect(rideStateLabel('flying')).toBe('Flying');
+    expect(rideTransitionLabel('flying')).toBe('Yeet');
+    expect(rideTransitionLabel('emergency-stop')).toBe('Emergency stop');
+  });
+
+  it('keeps the mirrored flight follow altitude in sync with the backend (3 m)', () => {
+    expect(FLIGHT_CAMERA_FOLLOW_ALTITUDE).toBe(3);
+  });
+
+  it('maps the flight altitude, defaulting to 0 when absent', () => {
+    expect(mapRideTelemetry(buildDto({ flightAltitudeMeters: 12.5 })).flightAltitudeMeters).toBe(
+      12.5,
+    );
+    expect(mapRideTelemetry(buildDto()).flightAltitudeMeters).toBe(0);
+  });
+
+  it('lists every state once in lifecycle order, with flying after started', () => {
+    expect([...RIDE_LIFECYCLE_ORDER].sort()).toEqual([...RIDE_STATE_BY_INDEX].sort());
+    expect(RIDE_LIFECYCLE_ORDER.indexOf('flying')).toBe(
+      RIDE_LIFECYCLE_ORDER.indexOf('started') + 1,
+    );
+  });
+
   it('maps lifecycle state and available transitions from numeric enums', () => {
     const model = mapRideTelemetry(buildDto({ state: 3, availableTransitions: [4, 6] }));
 
