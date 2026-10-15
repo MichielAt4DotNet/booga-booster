@@ -107,6 +107,19 @@ public static class RideParameters
     /// </summary>
     public const double MaxPassengerLoadKg = 3200d;
 
+    // --- Flight ("Yeet"; docs/06-flight.md) ---
+    /// <summary>Constant lift-off acceleration while flying (m/s²).</summary>
+    public const double FlightLiftAcceleration = 2d;
+
+    /// <summary>Maximum climb speed while flying (m/s); the lift acceleration stops here.</summary>
+    public const double FlightClimbSpeedMax = 15d;
+
+    /// <summary>
+    /// Altitude (m) at which the camera starts following the ride. The frontend mirrors
+    /// this value and must be kept in sync.
+    /// </summary>
+    public const double FlightCameraFollowAltitude = 3d;
+
     // --- Natural passenger behaviour ---
     /// <summary>Earliest a seated passenger pulls their restraint down.</summary>
     public static readonly TimeSpan MinRestraintCloseDelay = TimeSpan.FromSeconds(5);

@@ -28,5 +28,11 @@ public enum RideState
     Offloading,
 
     /// <summary>An emergency stop is in progress: brakes applied immediately from an active state.</summary>
-    EmergencyStop
+    EmergencyStop,
+
+    /// <summary>
+    /// The ride has been "yeeted": it is airborne and climbing. Appended after
+    /// <see cref="EmergencyStop"/> (index 7) so existing wire indices stay stable.
+    /// </summary>
+    Flying
 }

@@ -26,6 +26,9 @@ namespace FourDotnet.BoogaBooster.DigitalTwin.Abstractions;
 /// <param name="Mill">The central mill's telemetry.</param>
 /// <param name="Hubs">The four hubs' telemetry.</param>
 /// <param name="Gondolas">The sixteen gondolas' telemetry.</param>
+/// <param name="FlightAltitudeMeters">
+/// Height of the ride's base above the ground in metres; 0 if it has never flown.
+/// </param>
 public sealed record RideTelemetry(
     RideState State,
     double SimulationTimeSeconds,
@@ -36,4 +39,5 @@ public sealed record RideTelemetry(
     bool BrakesEngaged,
     MillTelemetry Mill,
     IReadOnlyList<HubTelemetry> Hubs,
-    IReadOnlyList<GondolaTelemetry> Gondolas);
+    IReadOnlyList<GondolaTelemetry> Gondolas,
+    double FlightAltitudeMeters);

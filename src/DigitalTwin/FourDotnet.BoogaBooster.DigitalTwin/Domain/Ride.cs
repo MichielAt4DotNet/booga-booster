@@ -41,6 +41,12 @@ public sealed class Ride : DomainModel
             ],
             [RideState.Started] =
             [
+                new Transition(RideState.Flying, static ride => ride.IsAtFullPower),
+                new Transition(RideState.Stopping, null),
+                new Transition(RideState.EmergencyStop, null),
+            ],
+            [RideState.Flying] =
+            [
                 new Transition(RideState.Stopping, null),
                 new Transition(RideState.EmergencyStop, null),
             ],
@@ -52,7 +58,8 @@ public sealed class Ride : DomainModel
     private readonly GreatMill _mill = new();
     private RideState _state = RideState.Idle;
     private double _simulationTimeSeconds;
-
+    private double _flightAltitudeMeters;
+    private double _climbSpeedMetersPerSecond;
     private Ride()
         : base(isNew: true)
     {
@@ -79,14 +86,17 @@ public sealed class Ride : DomainModel
     /// never released while this is <c>true</c>.
     /// </summary>
     public bool ConstraintsLocked =>
-        _state is RideState.Started or RideState.Stopping or RideState.EmergencyStop;
+        _state is RideState.Started or RideState.Flying or RideState.Stopping or RideState.EmergencyStop;
 
     /// <summary>
     /// <c>true</c> while the ride is in motion — running, or braking to a stop. This is
     /// exactly the set of states in which <see cref="Advance"/> steps the physics.
     /// </summary>
     public bool IsRunning =>
-        _state is RideState.Started or RideState.Stopping or RideState.EmergencyStop;
+        _state is RideState.Started or RideState.Flying or RideState.Stopping or RideState.EmergencyStop;
+
+    /// <summary>Height of the ride's base above the ground (m); 0 until the ride first flies, held after flight ends.</summary>
+    public double FlightAltitudeMeters => _flightAltitudeMeters;
 
     /// <summary>
     /// <c>true</c> while the ride is doing anything an observer would want to watch —
@@ -138,6 +148,28 @@ public sealed class Ride : DomainModel
 
     /// <summary><c>true</c> when every safety interlock is currently satisfied.</summary>
     private bool IsSafe => EvaluateSafety() == RideSafetyReason.None;
+
+    /// <summary><c>true</c> when the mill and every hub are commanded to 100 % power (the "yeet" interlock).</summary>
+    private bool IsAtFullPower
+    {
+        get
+        {
+            if (_mill.Power.Percent < EnginePower.MaxPercent)
+            {
+                return false;
+            }
+
+            foreach (var hub in _mill.Hubs)
+            {
+                if (hub.Power.Percent < EnginePower.MaxPercent)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
 
     /// <summary>Sets the main (mill) engine power.</summary>
     public bool SetMainEnginePower(EnginePower power)
@@ -379,9 +411,14 @@ public sealed class Ride : DomainModel
 
         // 3. Physics while in motion; a stopping/emergency ride settles into offloading
         //    (releasing the safety constraints) once it reaches a complete rest.
-        if (_state is RideState.Started or RideState.Stopping or RideState.EmergencyStop)
+        if (_state is RideState.Started or RideState.Flying or RideState.Stopping or RideState.EmergencyStop)
         {
             _mill.AdvancePhysics(dt.TotalSeconds);
+
+            if (_state == RideState.Flying)
+            {
+                AdvanceFlight(dt.TotalSeconds);
+            }
 
             if (_state is RideState.Stopping or RideState.EmergencyStop && _mill.IsAtRest)
             {
@@ -391,10 +428,12 @@ public sealed class Ride : DomainModel
             }
         }
 
-        // 4. Offloading returns to idle once the last rider has left.
+        // 4. Offloading returns to idle once the last rider has left; a fresh ride is
+        //    back on the ground.
         if (_state == RideState.Offloading && _mill.IsEmpty)
         {
             _state = RideState.Idle;
+            _flightAltitudeMeters = 0d;
         }
 
         _simulationTimeSeconds += dt.TotalSeconds;
@@ -430,7 +469,21 @@ public sealed class Ride : DomainModel
             _mill.BrakesEngaged,
             _mill.ToTelemetry(),
             hubs,
-            gondolas);
+            gondolas,
+            _flightAltitudeMeters);
+    }
+
+    /// <summary>
+    /// Semi-implicit Euler step of the climb: speed first (constant lift acceleration,
+    /// capped at the maximum climb speed), then altitude from the new speed. A pure
+    /// function of state and <paramref name="dtSeconds"/>, so it is deterministic.
+    /// </summary>
+    private void AdvanceFlight(double dtSeconds)
+    {
+        _climbSpeedMetersPerSecond = Math.Min(
+            _climbSpeedMetersPerSecond + RideParameters.FlightLiftAcceleration * dtSeconds,
+            RideParameters.FlightClimbSpeedMax);
+        _flightAltitudeMeters += _climbSpeedMetersPerSecond * dtSeconds;
     }
 
     /// <summary>Runs the entry side-effects for the state being entered.</summary>
@@ -440,6 +493,9 @@ public sealed class Ride : DomainModel
         {
             case RideState.Started:
                 EnterStarted();
+                break;
+            case RideState.Flying:
+                _climbSpeedMetersPerSecond = 0d;
                 break;
             case RideState.Stopping:
                 EnterStopping();
