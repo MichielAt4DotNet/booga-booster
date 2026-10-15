@@ -19,16 +19,16 @@
 
 ## 4. Frontend
 
-- [ ] 4.1 Add `flying` to the `RideState` model, index mapping, label ("Yeet") and ordered lifecycle list; add the altitude field and mirrored follow-threshold constant
-- [ ] 4.2 Render the "Yeet" button in `status-summary`, enabled from the server's available transitions
-- [ ] 4.3 `ride-visualization`: lift the base/rig by the altitude, keep the ground fixed
-- [ ] 4.4 `ride-visualization`: follow the ride with the camera once altitude ≥ threshold, preserving user orbit
-- [ ] 4.5 Wire the altitude from telemetry into the visualization
+- [x] 4.1 Add `flying` to the `RideState` model, index mapping, label ("Yeet") and ordered lifecycle list; add the altitude field and mirrored follow-threshold constant
+- [x] 4.2 Render the "Yeet" button in `status-summary`, enabled from the server's available transitions
+- [x] 4.3 `ride-visualization`: lift the base/rig by the altitude, keep the ground fixed
+- [x] 4.4 `ride-visualization`: follow the ride with the camera once altitude ≥ threshold, preserving user orbit
+- [x] 4.5 Wire the altitude from telemetry into the visualization
 
 ## 5. Frontend tests and accessibility
 
-- [ ] 5.1 Vitest specs: model mapping, Yeet enabled/disabled/click, altitude lift and follow behaviour
-- [ ] 5.2 Extend the dashboard a11y spec so the Yeet button passes AXE / WCAG AA
+- [x] 5.1 Vitest specs: model mapping, Yeet enabled/disabled/click, altitude lift and follow behaviour
+- [x] 5.2 Extend the dashboard a11y spec so the Yeet button passes AXE / WCAG AA
 
 ## 6. Wrap-up
 
