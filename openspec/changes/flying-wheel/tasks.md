@@ -32,5 +32,5 @@
 
 ## 6. Wrap-up
 
-- [ ] 6.1 `dotnet build` and `dotnet test` the solution; `npm test` in the Angular app
-- [ ] 6.2 Run `node .claude/skills/ai-tooling-sync/scripts/sync-ai-tooling.mjs` if tooling files changed
+- [x] 6.1 `dotnet build` and `dotnet test` the solution; `npm test` in the Angular app
+- [x] 6.2 Run `node .claude/skills/ai-tooling-sync/scripts/sync-ai-tooling.mjs` if tooling files changed
