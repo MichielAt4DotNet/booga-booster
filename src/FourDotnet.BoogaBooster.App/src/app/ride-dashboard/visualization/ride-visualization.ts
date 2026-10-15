@@ -11,7 +11,7 @@ import {
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-import { MotorDirection } from '../models/ride.models';
+import { FLIGHT_CAMERA_FOLLOW_ALTITUDE, MotorDirection } from '../models/ride.models';
 
 /** Ride geometry (metres) — mirrors the reference model's parameter set. */
 const P = {
@@ -37,6 +37,32 @@ const P = {
 
 /** Height of the arm plane above the ground. */
 const ARM_HEIGHT = P.towerHeight;
+
+/** Height of the orbit target above the (grounded) ride's base. */
+const ORBIT_TARGET_HEIGHT = 5.5;
+
+/**
+ * Altitude (metres) to lift the ride by: a non-finite or negative value is
+ * treated as grounded so a bad frame can never push the rig below the ground
+ * or blank the scene.
+ */
+export function liftAltitude(altitudeMeters: number): number {
+  return Math.max(0, finiteOrZero(altitudeMeters));
+}
+
+/**
+ * Vertical distance the orbit target (and, with it, the camera) must move this
+ * frame to track the ride. Zero while the altitude is below
+ * {@link FLIGHT_CAMERA_FOLLOW_ALTITUDE}, so the camera never moves on its own
+ * until the ride has climbed a little; afterwards the target stays on the ride.
+ * Moving the camera by the same delta preserves the user's orbit offset.
+ */
+export function cameraFollowDelta(altitudeMeters: number, currentTargetY: number): number {
+  const altitude = liftAltitude(altitudeMeters);
+  return altitude >= FLIGHT_CAMERA_FOLLOW_ALTITUDE
+    ? ORBIT_TARGET_HEIGHT + altitude - currentTargetY
+    : 0;
+}
 
 /** Largest simulation step applied per frame, in seconds (guards tab-switch jumps). */
 const MAX_STEP_S = 0.05;
@@ -132,6 +158,8 @@ export class RideVisualization {
   readonly hubSpeedRpm = input.required<number>();
   readonly hubDirection = input.required<MotorDirection>();
   readonly gondolaBrakeEngaged = input.required<boolean>();
+  /** Height of the ride above the ground, in metres. */
+  readonly flightAltitudeMeters = input(0);
 
   private readonly hostRef = viewChild.required<ElementRef<HTMLDivElement>>('host');
   private readonly destroyRef = inject(DestroyRef);
@@ -179,12 +207,15 @@ export class RideVisualization {
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.target.set(0, 5.5, 0);
+    controls.target.set(0, ORBIT_TARGET_HEIGHT, 0);
 
     this.addLighting(scene);
     this.addGround(scene);
-    this.addStaticStructure(scene);
-    const { mainPivot, hubPivots, gondolas } = this.addRig(scene);
+    // Everything that flies lives under one group so the ground stays put.
+    const rideGroup = new THREE.Group();
+    scene.add(rideGroup);
+    this.addStaticStructure(rideGroup);
+    const { mainPivot, hubPivots, gondolas } = this.addRig(rideGroup);
 
     const reducedMotion =
       typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -208,6 +239,15 @@ export class RideVisualization {
       }
 
       const braked = this.gondolaBrakeEngaged();
+      const altitude = this.flightAltitudeMeters();
+      rideGroup.position.y = liftAltitude(altitude);
+      // Track the ride once it has climbed past the threshold: shift the target
+      // and camera by the same delta so the user's orbit offset is preserved.
+      const followDelta = cameraFollowDelta(altitude, controls.target.y);
+      if (followDelta !== 0) {
+        controls.target.y += followDelta;
+        camera.position.y += followDelta;
+      }
       mainPivot.rotation.y = mainA;
       for (const hub of hubPivots) {
         hub.rotation.y = hubA;
@@ -298,22 +338,22 @@ export class RideVisualization {
     scene.add(ground);
   }
 
-  private addStaticStructure(scene: THREE.Scene): void {
+  private addStaticStructure(parent: THREE.Object3D): void {
     const mats = this.materials();
     const base = this.box(P.baseSize, P.baseHeight, P.baseSize, mats.base);
     base.position.y = P.baseHeight / 2;
-    scene.add(base);
+    parent.add(base);
 
     const tower = this.cyl(P.towerRadius, P.towerHeight, mats.tower);
     tower.position.y = P.towerHeight / 2;
-    scene.add(tower);
+    parent.add(tower);
 
     const motor = this.cyl(P.mainMotorR, P.mainMotorH, mats.motor);
     motor.position.y = ARM_HEIGHT;
-    scene.add(motor);
+    parent.add(motor);
   }
 
-  private addRig(scene: THREE.Scene): {
+  private addRig(parent: THREE.Object3D): {
     mainPivot: THREE.Group;
     hubPivots: THREE.Group[];
     gondolas: GondolaNode[];
@@ -321,7 +361,7 @@ export class RideVisualization {
     const mats = this.materials();
     const mainPivot = new THREE.Group();
     mainPivot.position.y = ARM_HEIGHT;
-    scene.add(mainPivot);
+    parent.add(mainPivot);
 
     const cap = this.cyl(P.mainMotorR * 0.6, 0.35, mats.tower);
     cap.position.y = P.mainMotorH / 2 + 0.1;

@@ -1,6 +1,36 @@
 import { TestBed } from '@angular/core/testing';
 
-import { RideVisualization, angularVelocity, podFreeAngle, rpmToRadPerSec } from './ride-visualization';
+import {
+  RideVisualization,
+  angularVelocity,
+  cameraFollowDelta,
+  liftAltitude,
+  podFreeAngle,
+  rpmToRadPerSec,
+} from './ride-visualization';
+
+describe('flight helpers', () => {
+  it('lifts by the altitude and treats bad values as grounded', () => {
+    expect(liftAltitude(7.5)).toBe(7.5);
+    expect(liftAltitude(-2)).toBe(0);
+    expect(liftAltitude(NaN)).toBe(0);
+    expect(liftAltitude(Infinity)).toBe(0);
+  });
+
+  it('does not move the camera below the follow threshold', () => {
+    expect(cameraFollowDelta(0, 5.5)).toBe(0);
+    expect(cameraFollowDelta(2.99, 5.5)).toBe(0);
+  });
+
+  it('moves the target onto the ride once altitude reaches the threshold', () => {
+    expect(cameraFollowDelta(3, 5.5)).toBeCloseTo(3);
+    expect(cameraFollowDelta(10, 8.5)).toBeCloseTo(7);
+  });
+
+  it('is idempotent once the target has caught up, so user orbit is left alone', () => {
+    expect(cameraFollowDelta(10, 15.5)).toBeCloseTo(0);
+  });
+});
 
 describe('RideVisualization', () => {
   function render() {
@@ -10,6 +40,7 @@ describe('RideVisualization', () => {
     fixture.componentRef.setInput('hubSpeedRpm', 9);
     fixture.componentRef.setInput('hubDirection', 'reverse');
     fixture.componentRef.setInput('gondolaBrakeEngaged', false);
+    fixture.componentRef.setInput('flightAltitudeMeters', 5);
     fixture.detectChanges();
     return fixture;
   }

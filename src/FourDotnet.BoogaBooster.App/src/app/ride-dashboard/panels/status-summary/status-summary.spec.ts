@@ -29,10 +29,38 @@ describe('StatusSummary', () => {
     return button;
   }
 
-  it('renders exactly seven lifecycle transition buttons', () => {
+  it('renders exactly eight lifecycle transition buttons', () => {
     const { host } = render('idle', []);
 
-    expect(host.querySelectorAll('.transition-button').length).toBe(7);
+    expect(host.querySelectorAll('.transition-button').length).toBe(8);
+  });
+
+  it('labels the flying transition "Yeet" and enables it only when offered', () => {
+    const disabled = render('started', ['stopping', 'emergency-stop']);
+    expect(buttonFor(disabled.host, 'Yeet').disabled).toBe(true);
+
+    const enabled = render('started', ['flying', 'stopping', 'emergency-stop']);
+    expect(buttonFor(enabled.host, 'Yeet').disabled).toBe(false);
+  });
+
+  it('emits flying when the enabled Yeet button is clicked', () => {
+    const { host, fixture } = render('started', ['flying']);
+    const events: RideState[] = [];
+    fixture.componentInstance.transition.subscribe((state) => events.push(state));
+
+    buttonFor(host, 'Yeet').click();
+
+    expect(events).toEqual(['flying']);
+  });
+
+  it('emits nothing when the disabled Yeet button is clicked', () => {
+    const { host, fixture } = render('started', ['stopping']);
+    const events: RideState[] = [];
+    fixture.componentInstance.transition.subscribe((state) => events.push(state));
+
+    buttonFor(host, 'Yeet').click();
+
+    expect(events).toEqual([]);
   });
 
   it('enables only the buttons present in availableTransitions', () => {

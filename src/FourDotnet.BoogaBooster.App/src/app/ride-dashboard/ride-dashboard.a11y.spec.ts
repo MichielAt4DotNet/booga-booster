@@ -48,12 +48,19 @@ describe('RideDashboard accessibility', () => {
     const http = TestBed.inject(HttpTestingController);
     const dto: RideTelemetryDto = {
       state: 'Started',
-      availableTransitions: ['Stopping', 'EmergencyStop'],
+      availableTransitions: ['Flying', 'Stopping', 'EmergencyStop'],
     };
     http.expectOne(TELEMETRY_URL).flush(dto);
 
     fixture.detectChanges();
     await fixture.whenStable();
+
+    const yeet = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>(
+        '.transition-button',
+      ),
+    ).find((button) => button.textContent?.includes('Yeet'));
+    expect(yeet?.disabled).toBe(false);
 
     const results = await axe.run(fixture.nativeElement as HTMLElement, {
       resultTypes: ['violations'],

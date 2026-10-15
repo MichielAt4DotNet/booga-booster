@@ -175,6 +175,8 @@ export class SimulatedRideTelemetrySource implements RideTelemetrySource {
       gondolas,
       gondolaBrakeEngaged: this.commands.gondolaBrakeEngaged,
       brakesEngaged: this.commands.brakesEngaged,
+      // The client simulator has no flight model; it never leaves the ground.
+      flightAltitudeMeters: 0,
     };
   }
 
