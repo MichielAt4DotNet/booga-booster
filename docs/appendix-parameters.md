@@ -40,6 +40,14 @@ number buried in the physics.
 | Wind cutoff | `windMax` | 18 | m/s |
 | E-stop decel ramp | — | 8 | s |
 
+## Flight ("Yeet", doc 6)
+
+| Parameter | Symbol | Default | Unit |
+|-----------|--------|--------:|------|
+| Lift acceleration | `a_lift` | 2 | m/s² |
+| Max climb speed | `v_max` | 15 | m/s |
+| Camera follow altitude (mirrored in the frontend — keep in sync) | `h_follow` | 3 | m |
+
 ## Loss-model coefficients
 
 Not fixed by the plan — picked to give the sanity-check behaviour below and locked in as the

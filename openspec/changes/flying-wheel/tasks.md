@@ -1,21 +1,21 @@
 ## 1. Backend domain (DigitalTwin)
 
-- [ ] 1.1 Add `Flying` (appended, index 7) to `RideState` and update the index/name mapping and any exhaustive switches
-- [ ] 1.2 Add flight constants (`FlightLiftAcceleration`, `FlightClimbSpeedMax`, `FlightCameraFollowAltitude`) to `RideParameters`; document the derivation in `docs/` and `docs/appendix-parameters.md`
-- [ ] 1.3 Add the `Started → Flying` transition guarded by mill power = 100 % and hub power = 100 %; allow `Flying → Stopping` and `Flying → Emergency Stop`
-- [ ] 1.4 Add deterministic `FlightAltitudeMeters` integration in `Ride.Advance` while `Flying`
-- [ ] 1.5 Treat `Flying` as running/constraints-locked and make the stop and settle-at-rest logic work from `Flying`
+- [x] 1.1 Add `Flying` (appended, index 7) to `RideState` and update the index/name mapping and any exhaustive switches
+- [x] 1.2 Add flight constants (`FlightLiftAcceleration`, `FlightClimbSpeedMax`, `FlightCameraFollowAltitude`) to `RideParameters`; document the derivation in `docs/` and `docs/appendix-parameters.md`
+- [x] 1.3 Add the `Started → Flying` transition guarded by mill power = 100 % and hub power = 100 %; allow `Flying → Stopping` and `Flying → Emergency Stop`
+- [x] 1.4 Add deterministic `FlightAltitudeMeters` integration in `Ride.Advance` while `Flying`
+- [x] 1.5 Treat `Flying` as running/constraints-locked and make the stop and settle-at-rest logic work from `Flying`
 
 ## 2. Backend API and telemetry
 
-- [ ] 2.1 Add the flight altitude to `RideTelemetry` and its DTO/SSE payload
-- [ ] 2.2 Verify `RequestRideStateTransition` accepts `Flying` and returns 400 on a rejected guard
+- [x] 2.1 Add the flight altitude to `RideTelemetry` and its DTO/SSE payload
+- [x] 2.2 Verify `RequestRideStateTransition` accepts `Flying` and returns 400 on a rejected guard
 
 ## 3. Backend tests
 
-- [ ] 3.1 State-machine tests: Yeet accepted at 100/100, rejected at <100 mill, <100 hub, from `Stopping`/`Safe`; available transitions
-- [ ] 3.2 Flight tests: altitude rises, is capped by max climb speed, deterministic, zero when never flown, stops on emergency stop
-- [ ] 3.3 Keep `DigitalTwin` line coverage ≥ 80 %
+- [x] 3.1 State-machine tests: Yeet accepted at 100/100, rejected at <100 mill, <100 hub, from `Stopping`/`Safe`; available transitions
+- [x] 3.2 Flight tests: altitude rises, is capped by max climb speed, deterministic, zero when never flown, stops on emergency stop
+- [x] 3.3 Keep `DigitalTwin` line coverage ≥ 80 %
 
 ## 4. Frontend
 
